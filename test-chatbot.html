@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LC Taylor Chatbot - Local Test</title>
+  <link
+    href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css"
+    rel="stylesheet"
+  />
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 40px;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      color: #1a3a5c;
+      margin-top: 0;
+    }
+    .info {
+      background: #f0f8ff;
+      border-left: 4px solid #1a3a5c;
+      padding: 16px 20px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    code {
+      background: #eef2f7;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 0.9em;
+    }
+    .test-steps {
+      background: #fffbea;
+      border-left: 4px solid #f5b800;
+      padding: 16px 20px;
+      border-radius: 4px;
+    }
+    .test-steps ol {
+      margin: 8px 0 0 0;
+      padding-left: 20px;
+    }
+    .test-steps li {
+      margin: 6px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>LC Taylor Website Chatbot — Local Test</h1>
+    <p>
+      This page embeds the n8n chat widget pointing at the live workflow
+      <code>csihOTnGaTJSW43J</code> on
+      <code>lshai.app.n8n.cloud</code>. The chat icon should appear at the
+      bottom-right of this page.
+    </p>
+
+    <div class="info">
+      <strong>What to look for:</strong> When you open the chat widget, the bot
+      should send the welcome message <em>automatically</em>, without you
+      typing anything first. Close and reopen — no repeat welcome.
+    </div>
+
+    <div class="test-steps">
+      <strong>Test checklist:</strong>
+      <ol>
+        <li>Open the chat icon (bottom-right) → welcome message appears immediately</li>
+        <li>Close the chat, refresh the page, reopen → NO repeat welcome (sessionId persisted)</li>
+        <li>Open this page in a fresh incognito window → welcome appears again (new sessionId)</li>
+        <li>Type a question (e.g. "What is bankruptcy?") → AI Agent should call Search_FAQ and reply</li>
+        <li>Try booking: "Can I book an appointment for next Tuesday at 10am?"</li>
+      </ol>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createChat } from "https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js";
+
+    createChat({
+      webhookUrl:
+        "https://lshai.app.n8n.cloud/webhook/6ce7cfdc-63a2-47fc-a7e2-560efb8086f4/chat",
+      mode: "window",
+      loadPreviousSession: true,
+      showWelcomeScreen: false,
+      defaultLanguage: "en",
+      initialMessages: [],
+      i18n: {
+        en: {
+          title: "LC Taylor Assistant",
+          subtitle: "Confidential, judgment-free help with your finances.",
+          footer: "",
+          getStarted: "New Conversation",
+          inputPlaceholder: "Type your message...",
+          closeButtonTooltip: "Close chat",
+        },
+      },
+    });
+  </script>
+</body>
+</html>
