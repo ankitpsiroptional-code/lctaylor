@@ -553,32 +553,394 @@
     </div>
   </footer>
 
-  <!-- n8n Chat Widget -->
-  <script type="module">
-    import { createChat } from "https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js";
+  <!-- LC Taylor Custom Chat Widget -->
+  <style>
+    .lct-chat-bubble {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: #0f2942;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 6px 24px rgba(15, 41, 66, 0.35);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s, background 0.2s;
+    }
+    .lct-chat-bubble:hover { background: #1e3a5f; transform: scale(1.05); }
+    .lct-chat-bubble svg { width: 28px; height: 28px; }
 
-    createChat({
-      webhookUrl:
-        "https://lshai.app.n8n.cloud/webhook/6ce7cfdc-63a2-47fc-a7e2-560efb8086f4/chat",
-      mode: "window",
-      loadPreviousSession: true,
-      showWelcomeScreen: false,
-      defaultLanguage: "en",
-      initialMessages: [
+    .lct-chat-window {
+      position: fixed;
+      bottom: 100px;
+      right: 24px;
+      width: 380px;
+      max-width: calc(100vw - 32px);
+      height: 600px;
+      max-height: calc(100vh - 120px);
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 12px 40px rgba(15, 41, 66, 0.25);
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      z-index: 9999;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .lct-chat-window.lct-open { display: flex; }
+
+    .lct-chat-header {
+      background: #0f2942;
+      color: #fff;
+      padding: 18px 20px;
+      flex-shrink: 0;
+    }
+    .lct-chat-header h3 {
+      font-family: "Playfair Display", serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin: 0 0 4px 0;
+    }
+    .lct-chat-header p {
+      font-size: 0.85rem;
+      opacity: 0.85;
+      margin: 0;
+    }
+    .lct-chat-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: transparent;
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      font-size: 1.3rem;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.75;
+    }
+    .lct-chat-close:hover { background: rgba(255, 255, 255, 0.15); opacity: 1; }
+
+    .lct-chat-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      background: #f5f7fa;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .lct-msg {
+      max-width: 85%;
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-size: 0.92rem;
+      line-height: 1.5;
+      word-wrap: break-word;
+    }
+    .lct-msg.lct-bot {
+      background: #fff;
+      color: #2d3748;
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+      box-shadow: 0 1px 2px rgba(15, 41, 66, 0.06);
+    }
+    .lct-msg.lct-user {
+      background: #0f2942;
+      color: #fff;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+    .lct-msg p { margin: 0 0 6px 0; }
+    .lct-msg p:last-child { margin-bottom: 0; }
+    .lct-msg ol, .lct-msg ul { padding-left: 20px; margin: 4px 0; }
+    .lct-msg a { color: #c8a04a; }
+    .lct-msg.lct-user a { color: #f0d68f; }
+
+    .lct-btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+      align-self: flex-start;
+      max-width: 100%;
+    }
+    .lct-quick-btn {
+      background: #fff;
+      color: #0f2942;
+      border: 1.5px solid #c8a04a;
+      padding: 8px 14px;
+      border-radius: 18px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      font-family: inherit;
+    }
+    .lct-quick-btn:hover {
+      background: #c8a04a;
+      color: #fff;
+    }
+    .lct-quick-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .lct-typing {
+      display: flex;
+      gap: 4px;
+      padding: 12px 14px;
+      background: #fff;
+      border-radius: 14px;
+      border-bottom-left-radius: 4px;
+      align-self: flex-start;
+      box-shadow: 0 1px 2px rgba(15, 41, 66, 0.06);
+    }
+    .lct-typing span {
+      width: 7px;
+      height: 7px;
+      background: #9aa5b1;
+      border-radius: 50%;
+      animation: lct-bounce 1.2s infinite ease-in-out;
+    }
+    .lct-typing span:nth-child(2) { animation-delay: 0.15s; }
+    .lct-typing span:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes lct-bounce {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.6; }
+      40% { transform: translateY(-5px); opacity: 1; }
+    }
+
+    .lct-chat-input-row {
+      display: flex;
+      padding: 12px;
+      background: #fff;
+      border-top: 1px solid #e3e8ee;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .lct-chat-input {
+      flex: 1;
+      border: 1px solid #d1d9e0;
+      border-radius: 22px;
+      padding: 10px 16px;
+      font-size: 0.92rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .lct-chat-input:focus { border-color: #c8a04a; }
+    .lct-send {
+      background: #c8a04a;
+      color: #fff;
+      border: none;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+    }
+    .lct-send:hover { background: #b08a3a; }
+    .lct-send:disabled { background: #c8c8c8; cursor: not-allowed; }
+    .lct-send svg { width: 18px; height: 18px; }
+
+    @media (max-width: 480px) {
+      .lct-chat-window {
+        right: 8px;
+        left: 8px;
+        width: auto;
+        bottom: 88px;
+      }
+    }
+  </style>
+
+  <button class="lct-chat-bubble" id="lct-toggle" aria-label="Open chat">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+  </button>
+
+  <div class="lct-chat-window" id="lct-window" role="dialog" aria-label="LC Taylor Assistant chat">
+    <div class="lct-chat-header">
+      <h3>LC Taylor Assistant</h3>
+      <p>Confidential, judgment-free help with your finances.</p>
+      <button class="lct-chat-close" id="lct-close" aria-label="Close chat">&times;</button>
+    </div>
+    <div class="lct-chat-body" id="lct-body"></div>
+    <div class="lct-chat-input-row">
+      <input class="lct-chat-input" id="lct-input" type="text" placeholder="Type your message..." autocomplete="off" />
+      <button class="lct-send" id="lct-send" aria-label="Send message">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    (function () {
+      const WEBHOOK_URL = "https://lshai.app.n8n.cloud/webhook/6ce7cfdc-63a2-47fc-a7e2-560efb8086f4/chat";
+      const SESSION_KEY = "lct-chat-session";
+      const INITIAL_MESSAGES = [
         "Hi there! 👋 Welcome to LC Taylor. I'm here to help with your financial questions in a confidential, judgment-free space.",
         "To get started, may I have your first name?"
-      ],
-      i18n: {
-        en: {
-          title: "LC Taylor Assistant",
-          subtitle: "Confidential, judgment-free help with your finances.",
-          footer: "",
-          getStarted: "New Conversation",
-          inputPlaceholder: "Type your message...",
-          closeButtonTooltip: "Close chat",
-        },
-      },
-    });
+      ];
+
+      const toggleBtn = document.getElementById("lct-toggle");
+      const closeBtn = document.getElementById("lct-close");
+      const windowEl = document.getElementById("lct-window");
+      const bodyEl = document.getElementById("lct-body");
+      const inputEl = document.getElementById("lct-input");
+      const sendBtn = document.getElementById("lct-send");
+
+      let sessionId = localStorage.getItem(SESSION_KEY);
+      if (!sessionId) {
+        sessionId = "lct_" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+        localStorage.setItem(SESSION_KEY, sessionId);
+      }
+
+      let sending = false;
+
+      function scrollToBottom() {
+        bodyEl.scrollTop = bodyEl.scrollHeight;
+      }
+
+      function parseButtons(text) {
+        const buttons = [];
+        const cleaned = text.replace(/\[btn\]([\s\S]*?)\[\/btn\]/g, (_, label) => {
+          buttons.push(label.trim());
+          return "";
+        }).replace(/\n{3,}/g, "\n\n").trim();
+        return { text: cleaned, buttons };
+      }
+
+      function renderBotMessage(rawText) {
+        const { text, buttons } = parseButtons(rawText || "");
+        if (text) {
+          const msg = document.createElement("div");
+          msg.className = "lct-msg lct-bot";
+          msg.innerHTML = window.marked ? marked.parse(text) : text.replace(/\n/g, "<br>");
+          bodyEl.appendChild(msg);
+        }
+        if (buttons.length) {
+          const group = document.createElement("div");
+          group.className = "lct-btn-group";
+          buttons.forEach((label) => {
+            const b = document.createElement("button");
+            b.className = "lct-quick-btn";
+            b.type = "button";
+            b.textContent = label;
+            b.addEventListener("click", () => {
+              if (sending) return;
+              // Disable all sibling buttons after selection
+              group.querySelectorAll(".lct-quick-btn").forEach((x) => (x.disabled = true));
+              sendMessage(label);
+            });
+            group.appendChild(b);
+          });
+          bodyEl.appendChild(group);
+        }
+        scrollToBottom();
+      }
+
+      function renderUserMessage(text) {
+        const msg = document.createElement("div");
+        msg.className = "lct-msg lct-user";
+        msg.textContent = text;
+        bodyEl.appendChild(msg);
+        scrollToBottom();
+      }
+
+      function showTyping() {
+        const t = document.createElement("div");
+        t.className = "lct-typing";
+        t.id = "lct-typing-indicator";
+        t.innerHTML = "<span></span><span></span><span></span>";
+        bodyEl.appendChild(t);
+        scrollToBottom();
+      }
+
+      function hideTyping() {
+        const t = document.getElementById("lct-typing-indicator");
+        if (t) t.remove();
+      }
+
+      async function sendMessage(text) {
+        if (!text || sending) return;
+        sending = true;
+        sendBtn.disabled = true;
+        renderUserMessage(text);
+        inputEl.value = "";
+        showTyping();
+
+        try {
+          const res = await fetch(WEBHOOK_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "sendMessage",
+              sessionId: sessionId,
+              chatInput: text,
+            }),
+          });
+          const data = await res.json();
+          hideTyping();
+          const reply = data.output || data.text || data.message || "";
+          if (reply) {
+            renderBotMessage(reply);
+          } else {
+            renderBotMessage("I'm having trouble responding right now. Please try again or call us at 204.925.6400.");
+          }
+        } catch (err) {
+          hideTyping();
+          renderBotMessage("Sorry, I couldn't reach the server. Please try again or call us at 204.925.6400.");
+        } finally {
+          sending = false;
+          sendBtn.disabled = false;
+          inputEl.focus();
+        }
+      }
+
+      function showInitialMessages() {
+        if (bodyEl.children.length > 0) return;
+        INITIAL_MESSAGES.forEach((m) => renderBotMessage(m));
+      }
+
+      toggleBtn.addEventListener("click", () => {
+        windowEl.classList.add("lct-open");
+        toggleBtn.style.display = "none";
+        showInitialMessages();
+        setTimeout(() => inputEl.focus(), 100);
+      });
+
+      closeBtn.addEventListener("click", () => {
+        windowEl.classList.remove("lct-open");
+        toggleBtn.style.display = "flex";
+      });
+
+      sendBtn.addEventListener("click", () => {
+        const text = inputEl.value.trim();
+        if (text) sendMessage(text);
+      });
+
+      inputEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          const text = inputEl.value.trim();
+          if (text) sendMessage(text);
+        }
+      });
+    })();
   </script>
 </body>
 </html>
