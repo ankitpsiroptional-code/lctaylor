@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LC Taylor — Licensed Insolvency Trustee | Winnipeg, MB</title>
   <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet" />
+  <link href="https://assets.calendly.com/assets/external/widget.css" rel="stylesheet" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -765,6 +766,30 @@
         bottom: 88px;
       }
     }
+
+    .lct-calendly-view {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow: hidden;
+      min-height: 0;
+    }
+    .lct-calendly-back {
+      padding: 8px 16px;
+      background: #f5f7fa;
+      border: none;
+      border-bottom: 1px solid #e3e8ee;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: #0f2942;
+      text-align: left;
+      flex-shrink: 0;
+      font-family: inherit;
+    }
+    .lct-calendly-back:hover { background: #e8ecf0; }
+    .lct-calendly-frame { flex: 1; overflow: hidden; min-height: 0; }
+    .lct-calendly-active .lct-chat-body,
+    .lct-calendly-active .lct-chat-input-row { display: none !important; }
   </style>
 
   <button class="lct-chat-bubble" id="lct-toggle" aria-label="Open chat">
@@ -787,9 +812,12 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://assets.calendly.com/assets/external/widget.js" async></script>
   <script>
     (function () {
       const WEBHOOK_URL = "https://lshai.app.n8n.cloud/webhook/6ce7cfdc-63a2-47fc-a7e2-560efb8086f4/chat";
+      const CALENDLY_EVENT_URL = "https://calendly.com/jyoti-localsearchheroes/30min";
+      const BOOKING_BUTTON_LABEL = "Book a FREE consultation";
       const SESSION_KEY = "lct-chat-session";
       const INITIAL_MESSAGES = [
         "Hi there! 👋 Welcome to LC Taylor. I'm here to help with your financial questions in a confidential, judgment-free space.",
@@ -844,7 +872,11 @@
               if (sending) return;
               // Disable all sibling buttons after selection
               group.querySelectorAll(".lct-quick-btn").forEach((x) => (x.disabled = true));
-              sendMessage(label);
+              if (label === BOOKING_BUTTON_LABEL) {
+                openCalendly();
+              } else {
+                sendMessage(label);
+              }
             });
             group.appendChild(b);
           });
@@ -875,11 +907,12 @@
         if (t) t.remove();
       }
 
-      async function sendMessage(text) {
+      async function sendMessage(text, opts) {
         if (!text || sending) return;
+        const hidden = opts && opts.hidden;
         sending = true;
         sendBtn.disabled = true;
-        renderUserMessage(text);
+        if (!hidden) renderUserMessage(text);
         inputEl.value = "";
         showTyping();
 
@@ -939,6 +972,58 @@
           const text = inputEl.value.trim();
           if (text) sendMessage(text);
         }
+      });
+
+      function closeCalendlyView() {
+        const view = document.getElementById("lct-calendly-view");
+        if (view) view.remove();
+        windowEl.classList.remove("lct-calendly-active");
+      }
+
+      function openCalendly() {
+        if (document.getElementById("lct-calendly-view")) return;
+
+        const view = document.createElement("div");
+        view.id = "lct-calendly-view";
+        view.className = "lct-calendly-view";
+
+        const backBtn = document.createElement("button");
+        backBtn.className = "lct-calendly-back";
+        backBtn.textContent = "← Back to chat";
+        backBtn.addEventListener("click", closeCalendlyView);
+
+        const frame = document.createElement("div");
+        frame.className = "lct-calendly-frame";
+
+        view.appendChild(backBtn);
+        view.appendChild(frame);
+
+        const inputRow = windowEl.querySelector(".lct-chat-input-row");
+        windowEl.insertBefore(view, inputRow);
+        windowEl.classList.add("lct-calendly-active");
+
+        if (window.Calendly && typeof window.Calendly.initInlineWidget === "function") {
+          window.Calendly.initInlineWidget({
+            url: CALENDLY_EVENT_URL + "?timezone=America%2FWinnipeg&hide_gdpr_banner=1",
+            parentElement: frame,
+          });
+        } else {
+          window.open(CALENDLY_EVENT_URL, "_blank", "noopener");
+          closeCalendlyView();
+        }
+      }
+
+      window.addEventListener("message", (e) => {
+        if (!e.data || typeof e.data !== "object") return;
+        if (e.data.event !== "calendly.event_scheduled") return;
+        closeCalendlyView();
+        const payload = e.data.payload || {};
+        const eventUri = (payload.event && payload.event.uri) || "";
+        const inviteeUri = (payload.invitee && payload.invitee.uri) || "";
+        sendMessage(
+          "__CALENDLY_BOOKED__ event_uri=" + eventUri + " invitee_uri=" + inviteeUri,
+          { hidden: true }
+        );
       });
     })();
   </script>
